@@ -30,6 +30,7 @@ SDK_BRANCH = "21.08"
 USER_DIR = os.path.expanduser("~/.cache/wk-sdk")
 BUILDBOX='noite.home.arpa'
 WKSRCDIR='/home/vjaquez/WebKit'
+GSTPATH='/home/vjaquez/gst/gstreamer'
 
 def flatpak(*args, env=None, stdout=None):
     cmd_env = os.environ.copy()
@@ -95,6 +96,8 @@ def run(path, build_type, args):
     flatpak("run", "--die-with-parent", "--user",
             f"--env=PATH=/app/webkit/WebKitBuild/{build_type}/bin:/usr/bin",
             "--env=PS1=[📦🌐🐱 $FLATPAK_ID \\W]\\$",
+            "--filesystem=host",
+            "--allow=devel",
             "--device=dri",
             "--share=ipc",
             "--share=network",
@@ -110,6 +113,29 @@ def run(path, build_type, args):
             "--talk-name=org.gtk.vfs.*",
             f"--command={args[0]}", "org.webkit.Sdk", *args[1:], env=env)
 
+def setup_gst(path, build_type):
+    gst_builddir = os.path.join(path, 'gst-build')
+    if not os.path.exists(os.path.join(gst_builddir, 'build.ninja')):
+        args = ['meson', GSTPATH, gst_builddir]
+        run(path, build_type, args)
+
+    args = ['ninja', '-C', gst_builddir]
+    run(path, build_type, args)
+
+    command = [os.path.join(GSTPATH, 'gst-env.py'), '--builddir', gst_builddir, '--srcdir', GSTPATH, '--only-environment']
+    gstenv = subprocess.check_output(command).strip().decode('utf-8')
+    env = {}
+    for line in [line for line in gstenv.splitlines() if not line.startswith("export")]:
+        tokens = line.split('=')
+        name, value = tokens[0], '='.join(tokens[1:])
+        if not name.startswith("GST_") and name not in ("LD_LIBRARY_PATH", "PATH", "PKG_CONFIG_PATH"):
+            continue
+        if name not in ("GST_DEBUG", "GST_VERSION", "GST_ENV"):
+            new_value = ':'.join(p.replace(os.path.abspath(path), f"/app/webkit/WebKitBuild/{build_type}") for p in value.split(':'))
+        else:
+            new_value = value.replace("'", "")
+        env[name] = new_value
+    return env
 
 def main(args):
     parser = argparse.ArgumentParser()
@@ -141,6 +167,7 @@ def main(args):
         parsed.path = ensure_extracted_build(parsed)
 
     if parsed.path:
+        gstenv = setup_gst(parsed.path, parsed.build_type)
         run(parsed.path, parsed.build_type, parsed.command)
 
 def read_lines(fd: int):
