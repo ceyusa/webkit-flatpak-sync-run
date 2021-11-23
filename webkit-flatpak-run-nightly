@@ -25,27 +25,12 @@ import shlex
 import tempfile
 import time
 import subprocess
-import urllib.request
-from html.parser import HTMLParser
 
 REPO = "https://software.igalia.com/flatpak-refs/webkit-sdk.flatpakrepo"
 SDK_BRANCH = "21.08"
 USER_DIR = os.path.expanduser("~/.cache/wk-nightly")
-
-def spinning_cursor():
-    while True:
-        for cursor in '|/-\\':
-            yield cursor
-
-# FIXME: Might be worth adding some JSON file listing builds on the servers.
-class MyHTMLParser(HTMLParser):
-    builds = []
-    def handle_starttag(self, tag, attrs):
-        if tag != "a":
-            return
-        for (name, value) in attrs:
-            if name == "href" and (value.startswith("release") or value.startswith("debug")):
-                self.builds.append(value)
+BUILDBOX='noite.home.arpa'
+WKSRCDIR='/home/vjaquez/WebKit'
 
 def flatpak(*args, env=None, stdout=None):
     cmd_env = os.environ.copy()
@@ -68,16 +53,30 @@ def ensure_sdk(build_type):
 def get_build_path():
     return os.path.join(os.curdir, 'WebKitBuild')
 
-def ensure_extracted_build(args):
-    build_type = args.build_type.lower()
-    build = '{}.zip'.format(build_type)
-    url = 'noite.home.arpa:~/WebKit/WebKitBuild/'
+def get_build_dir(args, top_level=False):
+    configuration = args.build_type.lower()
+    if args.platform == 'wpewebkit':
+        platform = 'wpe'
+    else:
+        platform = 'gtk'
 
-    print(f"Downloading build {build} from {url}")
-    os.system(f"scp {url}{build} ./")
+    command = ['ssh', BUILDBOX, os.path.join(WKSRCDIR, 'Tools', 'Scripts', 'webkit-build-directory'), '--' + platform, '--' + configuration]
+    if top_level:
+        command += ['--top-level']
+    else:
+        command += ['--configuration']
+
+    return subprocess.Popen(command, stdout=subprocess.PIPE).communicate()[0].strip().decode('utf-8')
+
+def ensure_extracted_build(args):
+    includes = [ 'bin', 'lib', 'install/include', 'install/lib/pkgconfig', 'Tools', 'Source']
+    src = "{}:{}/{{{}}}".format(BUILDBOX, get_build_dir(args), ','.join(includes))
+    command = [ 'rsync', '-adivC', src ]
+    command += [ '--exclude', '*.o', '--exclude', '*.a' ]
     path = get_build_path()
-    print(f"Extracting build to {path}")
-    os.system(f"unzip -qq -o {build} -d {path}")
+    command += [ path ]
+    cmd = ' '.join(command)
+    os.system(cmd)
     return path
 
 def run(path, build_type, args):
