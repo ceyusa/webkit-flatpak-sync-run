@@ -26,9 +26,8 @@ import tempfile
 import time
 import subprocess
 
-REPO = "https://software.igalia.com/flatpak-refs/webkit-sdk.flatpakrepo"
 SDK_BRANCH = "21.08"
-USER_DIR = os.path.expanduser("~/.cache/wk-nightly")
+USER_DIR = os.path.expanduser("~/.cache/wk-sdk")
 BUILDBOX='noite.home.arpa'
 WKSRCDIR='/home/vjaquez/WebKit'
 
@@ -42,13 +41,15 @@ def flatpak(*args, env=None, stdout=None):
 def ensure_sdk(build_type):
     branch = SDK_BRANCH
     if not os.path.isdir(USER_DIR):
-        flatpak("remote-add", "--user", "webkit-nightly", REPO)
-        flatpak("install", "--user", "-y", "webkit-nightly", f"org.webkit.Platform//{branch}")
+        flatpak("remote-add", "--user", "webkit-sdk", "https://software.igalia.com/flatpak-refs/webkit-sdk.flatpakrepo")
+        flatpak("remote-add", "--user", "flathub", "https://dl.flathub.org/repo/flathub.flatpakrepo")
+        flatpak("install", "--user", "-y", "webkit-sdk", f"org.webkit.Platform//{branch}")
+        flatpak("install", "--user", "-y", "webkit-sdk", f"org.webkit.Sdk//{branch}")
+        #flatpak("install", "--user", "-y", "webkit-sdk", f"org.webkit.Sdk.Debug//{branch}")
+        flatpak("install", "--user", "-y", "flathub", f"org.freedesktop.Sdk.Extension.llvm12/{branch}")
+        flatpak("install", "--user", "-y", "flathub", f"org.freedesktop.Platform.GL.default/{branch}")
     else:
         flatpak("update", "--user", "-y")
-    if (build_type == "Debug") and (flatpak("info", "org.webkit.Sdk.Debug", stdout=subprocess.DEVNULL) >= 1):
-        flatpak("install", "--user", "-y", "webkit-nightly", f"org.webkit.Sdk//{branch}")
-        flatpak("install", "--user", "-y", "webkit-nightly", f"org.webkit.Sdk.Debug//{branch}")
 
 def get_build_path():
     return os.path.join(os.curdir, 'WebKitBuild')
@@ -99,7 +100,8 @@ def run(path, build_type, args):
             "--talk-name=org.freedesktop.Flatpak",
             "--talk-name=org.gtk.vfs",
             "--talk-name=org.gtk.vfs.*",
-            f"--command={args[0]}", f"org.webkit.Platform//{SDK_BRANCH}", *args[1:], env=env)
+            f"--command={args[0]}", "org.webkit.Sdk", *args[1:], env=env)
+
 
 def main(args):
     parser = argparse.ArgumentParser()
