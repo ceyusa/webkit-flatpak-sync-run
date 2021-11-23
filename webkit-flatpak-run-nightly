@@ -85,8 +85,16 @@ def run(path, build_type, args):
         "FLATPAK_BWRAP": os.path.realpath(__file__),
         "WEBKIT_BUILD_DIR_BIND_MOUNT": f"/app/webkit/WebKitBuild/{build_type}:{path}",
     }
+
+    if not args:
+        args.append("bash")
+
+    if args[0] == "bash":
+        args.extend(['--noprofile', '--norc', '-i'])
+
     flatpak("run", "--die-with-parent", "--user",
             f"--env=PATH=/app/webkit/WebKitBuild/{build_type}/bin:/usr/bin",
+            "--env=PS1=[📦🌐🐱 $FLATPAK_ID \\W]\\$",
             "--device=dri",
             "--share=ipc",
             "--share=network",
