@@ -72,7 +72,7 @@ def get_build_dir(args, top_level=False):
     return subprocess.Popen(command, stdout=subprocess.PIPE).communicate()[0].strip().decode('utf-8')
 
 def ensure_extracted_build(args):
-    includes = [ 'bin', 'lib', 'install/include', 'install/lib/pkgconfig', 'Tools', 'Source']
+    includes = [ 'bin', 'lib', 'Tools', 'Source']
     src = "{}:{}/{{{}}}".format(BUILDBOX, get_build_dir(args), ','.join(includes))
     command = [ 'rsync', '-aivC', '--delete', src ]
     command += [ '--exclude', '*.o', '--exclude', '*.dwo', '--exclude', '*.a', '--include', '*.so' ]
