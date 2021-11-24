@@ -132,7 +132,7 @@ def run(path, build_type, args, extra = None):
 def setup_gst(path, build_type):
     gst_builddir = os.path.join(path, 'gst-build')
     if not os.path.exists(os.path.join(gst_builddir, 'build.ninja')):
-        args = ['meson', GSTPATH, gst_builddir]
+        args = ['meson', GSTPATH, gst_builddir, '-D', 'vaapi=enabled']
         run(path, build_type, args)
 
     args = ['ninja', '-C', gst_builddir]
