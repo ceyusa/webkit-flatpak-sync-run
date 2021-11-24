@@ -82,10 +82,15 @@ def ensure_extracted_build(args):
     os.system(cmd)
     return path
 
-def run(path, build_type, args):
+def run(path, build_type, args, extra = None):
     env = {
         "FLATPAK_BWRAP": os.path.realpath(__file__),
         "WEBKIT_BUILD_DIR_BIND_MOUNT": f"/app/webkit/WebKitBuild/{build_type}:{path}",
+    }
+
+    sbenv = {
+        'PATH': f'/app/webkit/WebKitBuild/{build_type}/bin:/usr/bin:/usr/lib/sdk/llvm12/bin',
+        'TEST_RUNNER_INJECTED_BUNDLE_FILENAME': f"/app/webkit/WebKitBuild/{build_type}/lib/libTestRunnerInjectedBundle.so",
     }
 
     if not args:
@@ -93,10 +98,20 @@ def run(path, build_type, args):
 
     if args[0] == "bash":
         args.extend(['--noprofile', '--norc', '-i'])
+        sbenv["PS1"] = "[📦🌐🐱 $FLATPAK_ID \\W]\\$ "
 
-    flatpak("run", "--die-with-parent", "--user",
-            f"--env=PATH=/app/webkit/WebKitBuild/{build_type}/bin:/usr/bin",
-            "--env=PS1=[📦🌐🐱 $FLATPAK_ID \\W]\\$",
+    if extra:
+        for name in list(extra.keys()):
+            if name not in sbenv:
+                sbenv[name] = extra[name]
+            elif name.endswith('PATH'):
+                sbenv[name] = "%s:%s" % (sbenv[name], extra[name])
+
+    flatpak_env = []
+    for name, value in sbenv.items():
+        flatpak_env.append("--env=%s=%s" % (name, value))
+
+    flatpak("run", "--die-with-parent", "--user", *tuple(flatpak_env),
             "--filesystem=host",
             "--allow=devel",
             "--device=dri",
@@ -169,7 +184,7 @@ def main(args):
 
     if parsed.path:
         gstenv = setup_gst(parsed.path, parsed.build_type)
-        run(parsed.path, parsed.build_type, parsed.command)
+        run(parsed.path, parsed.build_type, parsed.command, gstenv)
 
 def read_lines(fd: int):
     new_fd = os.dup(fd)
