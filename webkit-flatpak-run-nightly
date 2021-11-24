@@ -28,9 +28,9 @@ import subprocess
 
 SDK_BRANCH = "21.08"
 USER_DIR = os.path.expanduser("~/.cache/wk-sdk")
-BUILDBOX='noite.home.arpa'
-WKSRCDIR='/home/vjaquez/WebKit'
-GSTPATH='/home/vjaquez/gst/gstreamer'
+BUILDBOX = 'noite.home.arpa'
+WKSRCDIR = '/home/vjaquez/WebKit'
+GSTPATH = '/home/vjaquez/gst/gstreamer'
 
 def flatpak(*args, env=None, stdout=None):
     cmd_env = os.environ.copy()
