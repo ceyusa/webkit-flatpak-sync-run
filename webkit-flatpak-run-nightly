@@ -49,6 +49,7 @@ def ensure_sdk(build_type):
         #flatpak("install", "--user", "-y", "webkit-sdk", f"org.webkit.Sdk.Debug//{branch}")
         flatpak("install", "--user", "-y", "flathub", f"org.freedesktop.Sdk.Extension.llvm12/{branch}")
         flatpak("install", "--user", "-y", "flathub", f"org.freedesktop.Platform.GL.default/{branch}")
+        flatpak("install", "--user", "-y", "flathub", f"org.freedesktop.Platform.VAAPI.Intel/x86_64/{branch}")
     else:
         flatpak("update", "--user", "-y")
 
