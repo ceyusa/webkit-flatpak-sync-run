@@ -75,7 +75,7 @@ def ensure_extracted_build(args):
     includes = [ 'bin', 'lib', 'install/include', 'install/lib/pkgconfig', 'Tools', 'Source']
     src = "{}:{}/{{{}}}".format(BUILDBOX, get_build_dir(args), ','.join(includes))
     command = [ 'rsync', '-adivC', src ]
-    command += [ '--exclude', '*.o', '--exclude', '*.a' ]
+    command += [ '--exclude', '*.o', '--exclude', '*.a', '--include', '*.so' ]
     path = get_build_path()
     command += [ path ]
     cmd = ' '.join(command)
